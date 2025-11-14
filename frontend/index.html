@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Movie Recommendations</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 24px; color: #111; }
+      .container { max-width: 900px; margin: 0 auto; }
+      .card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 12px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+      .row { display: flex; gap: 12px; align-items: center; margin-bottom: 16px; }
+      input[type="number"], input[type="text"] { padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; }
+      button { padding: 9px 14px; background: #2563eb; color: white; border: none; border-radius: 6px; cursor: pointer; }
+      button:disabled { background: #9ca3af; cursor: not-allowed; }
+      .muted { color: #6b7280; }
+      .badge { display: inline-block; padding: 2px 8px; background: #f1f5f9; border-radius: 9999px; font-size: 12px; color: #334155; margin-left: 8px; }
+      .error { color: #b91c1c; margin: 8px 0; }
+      .success { color: #065f46; margin: 8px 0; }
+      header { margin-bottom: 18px; }
+      h1 { margin: 0 0 4px; font-size: 22px; }
+      .sub { font-size: 14px; color: #6b7280; }
+    </style>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script crossorigin src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>Movie Recommendations</h1>
+        <div class="sub">Backend: GET /users/{userId}/recommendations</div>
+      </header>
+
+      <div id="root"></div>
+    </div>
+
+    <script type="text/babel">
+      const { useEffect, useMemo, useState } = React;
+
+      function App() {
+        const [apiBase, setApiBase] = useState(() => {
+          return localStorage.getItem('apiBase') || 'http://127.0.0.1:8001';
+        });
+        const [userId, setUserId] = useState(1);
+        const [loading, setLoading] = useState(false);
+        const [error, setError] = useState('');
+        const [items, setItems] = useState([]);
+
+        const canFetch = useMemo(() => Number.isInteger(Number(userId)) && Number(userId) > 0, [userId]);
+
+        const saveApiBase = () => {
+          localStorage.setItem('apiBase', apiBase);
+        };
+
+        const fetchRecs = async () => {
+          if (!canFetch) return;
+          setLoading(true);
+          setError('');
+          setItems([]);
+          try {
+            const res = await fetch(`${apiBase}/users/${userId}/recommendations`);
+            if (!res.ok) {
+              throw new Error(`HTTP ${res.status}`);
+            }
+            const data = await res.json();
+            setItems(Array.isArray(data) ? data : []);
+          } catch (e) {
+            setError(e?.message || 'Failed to fetch');
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        useEffect(() => {
+          // Auto-fetch on first mount
+          fetchRecs();
+        }, []);
+
+        return (
+          <div>
+            <div className="card">
+              <div className="row">
+                <label>API Base</label>
+                <input type="text" value={apiBase} onChange={(e) => setApiBase(e.target.value)} style={{ width: 320 }} />
+                <button onClick={saveApiBase}>Save</button>
+                <span className="muted">e.g. http://127.0.0.1:8001</span>
+              </div>
+              <div className="row">
+                <label>User ID</label>
+                <input type="number" min="1" value={userId} onChange={(e) => setUserId(e.target.value)} />
+                <button onClick={fetchRecs} disabled={!canFetch || loading}>{loading ? 'Loading...' : 'Get Recommendations'}</button>
+              </div>
+              {error && <div className="error">{error}</div>}
+              {!error && !loading && items.length === 0 && (
+                <div className="muted">No recommendations found.</div>
+              )}
+            </div>
+
+            {items.map((m) => (
+              <div className="card" key={m.id}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                  <h3 style={{ margin: 0 }}>{m.title}</h3>
+                  <span className="badge">{m.genre} · {m.year}</span>
+                </div>
+                <div className="muted" style={{ marginTop: 6 }}>{m.description}</div>
+              </div>
+            ))}
+          </div>
+        );
+      }
+
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+      root.render(<App />);
+    </script>
+  </body>
+  </html>
+
+
