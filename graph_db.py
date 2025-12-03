@@ -249,6 +249,6 @@ class ActorGraphRepository(_BaseGraphRepository):
             "MERGE (a)-[:ACTED_IN]->(m)"
         )
         with self._driver.session() as session:
-            session.execute_write(lambda tx: tx.run(cypher, actor_id=actor_id, mo vie_id=movie_id))
+            session.execute_write(lambda tx: tx.run(cypher, actor_id=actor_id, movie_id=movie_id))
 
          
